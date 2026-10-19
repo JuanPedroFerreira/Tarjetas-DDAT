@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tarjetas DDANT</title>
+<meta name="description" content="Tarjetas de estudio con las 114 preguntas para el parcial de Desarrollo de Dispositivos Aéreos No Tripulados: filtrá por tema, rango y clase, y marcá las que ya sabés.">
+<meta name="theme-color" content="#E6EAED">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="assets/fonts/b612-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/source-serif-4-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/styles.css">
+<script>
+  try {
+    var saved = JSON.parse(localStorage.getItem('ddant_tarjetas_v1') || '{}');
+    if (saved.theme === 'light' || saved.theme === 'dark') document.documentElement.setAttribute('data-theme', saved.theme);
+  } catch (e) {}
+</script>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Tarjetas DDANT, volver al inicio">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <g fill="none" stroke="currentColor" stroke-width="1.7">
+          <circle cx="8" cy="8" r="5.2"/><circle cx="24" cy="8" r="5.2"/><circle cx="8" cy="24" r="5.2"/><circle cx="24" cy="24" r="5.2"/>
+          <path d="M11.6 11.6l8.8 8.8M20.4 11.6l-8.8 8.8"/>
+        </g>
+        <rect x="12.6" y="12.6" width="6.8" height="6.8" rx="1.6" fill="currentColor"/>
+      </svg>
+      <span class="brand-text">
+        <span class="brand-name">Tarjetas DDANT</span>
+        <span class="brand-sub">Dispositivos aéreos no tripulados</span>
+      </span>
+    </a>
+    <div class="viewswitch" role="group" aria-label="Vista">
+      <button type="button" id="vStudy" class="vs-btn" aria-pressed="true">Estudiar</button>
+      <button type="button" id="vList" class="vs-btn" aria-pressed="false">Lista</button>
+    </div>
+    <div class="spacer"></div>
+    <button type="button" id="btnNew" class="btn btn-ghost" title="Nueva tarjeta (N)"><span class="lbl">Nueva tarjeta</span></button>
+    <button type="button" id="btnTheme" class="btn btn-icon btn-quiet" aria-label="Cambiar tema"></button>
+    <div class="menu-wrap">
+      <button type="button" id="btnMenu" class="btn btn-icon btn-quiet" aria-haspopup="menu" aria-expanded="false" aria-controls="menu" aria-label="Más opciones"></button>
+      <div id="menu" class="menu" role="menu" aria-label="Más opciones" hidden>
+        <button type="button" role="menuitem" data-act="export" data-icon="download">Exportar respaldo</button>
+        <button type="button" role="menuitem" data-act="exportMine" data-icon="download">Exportar mis tarjetas</button>
+        <button type="button" role="menuitem" data-act="import" data-icon="upload">Importar archivo</button>
+        <hr>
+        <button type="button" role="menuitem" data-act="shortcuts" data-icon="keyboard">Atajos de teclado</button>
+        <button type="button" role="menuitem" data-act="systemTheme" data-icon="monitor">Usar el tema del sistema</button>
+        <button type="button" role="menuitem" data-act="about" data-icon="info">Sobre estas tarjetas</button>
+        <hr>
+        <button type="button" role="menuitem" data-act="resetMarks" data-icon="eraser" class="danger">Borrar todas las marcas</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar" id="filters" aria-label="Filtros">
+      <div class="sidebar-head">
+        <h2>Filtros</h2>
+        <button type="button" id="btnClear" class="link">Limpiar</button>
+        <button type="button" id="btnCloseFilters" class="btn btn-icon btn-quiet only-mobile" aria-label="Cerrar filtros"></button>
+      </div>
+
+      <div class="sidebar-scroll">
+      <div class="fsec fsec-first">
+        <label class="sr-only" for="fQuery">Buscar en preguntas y respuestas</label>
+        <div class="search">
+          <span id="searchIc" class="search-ic"></span>
+          <input id="fQuery" type="search" placeholder="Buscar en las tarjetas" autocomplete="off" spellcheck="false">
+          <button type="button" id="qClear" class="search-clear" aria-label="Borrar la búsqueda" hidden></button>
+        </div>
+      </div>
+
+      <div class="fsec">
+        <h3 id="hStatus">Estado</h3>
+        <div class="chips" id="fStatus" role="group" aria-labelledby="hStatus"></div>
+      </div>
+
+      <div class="fsec">
+        <h3 id="hTopics">Temas</h3>
+        <div class="chips" id="fTopics" role="group" aria-labelledby="hTopics"></div>
+      </div>
+
+      <div class="fsec">
+        <h3 id="hRange">Preguntas <span id="rangeLabel" class="h-aside"></span></h3>
+        <div class="range" role="group" aria-labelledby="hRange">
+          <div class="range-track"><div class="range-fill" id="rangeFill"></div></div>
+          <input type="range" id="rFrom" min="1" max="114" step="1" value="1" aria-label="Desde la pregunta">
+          <input type="range" id="rTo" min="1" max="114" step="1" value="114" aria-label="Hasta la pregunta">
+        </div>
+        <div class="range-nums">
+          <label>Desde <input type="number" id="nFrom" min="1" max="114" inputmode="numeric"></label>
+          <label>Hasta <input type="number" id="nTo" min="1" max="114" inputmode="numeric"></label>
+        </div>
+      </div>
+
+      <div class="fsec">
+        <h3 id="hSources">Clases</h3>
+        <div class="chips" id="fSources" role="group" aria-labelledby="hSources"></div>
+      </div>
+
+      <div class="fsec">
+        <h3 id="hOrder">Orden</h3>
+        <div class="chips" id="fOrder" role="group" aria-labelledby="hOrder"></div>
+        <button type="button" id="btnReshuffle" class="link link-sm" hidden>Mezclar de nuevo</button>
+      </div>
+
+      <div class="fsec">
+        <h3 id="hSession">Tarjetas por sesión</h3>
+        <div class="chips" id="fSession" role="group" aria-labelledby="hSession"></div>
+        <button type="button" id="btnNewSession" class="link link-sm" hidden>Sortear otra sesión</button>
+      </div>
+
+      <div class="fsec">
+        <h3>Avance en esta selección</h3>
+        <div class="pbar" id="pbar" role="img"></div>
+        <div class="legend" id="pLegend"></div>
+        <p class="note" id="pTotal"></p>
+      </div>
+
+      <p class="note note-storage">Tu avance y tus tarjetas se guardan en este navegador. Para pasarlos a otro dispositivo, exportá un respaldo desde el menú.</p>
+      </div>
+
+      <div class="sidebar-foot only-mobile">
+        <button type="button" id="btnShowResults" class="btn btn-primary">Ver tarjetas</button>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+      <section class="view study" id="study" aria-label="Estudiar">
+        <div class="deckbar">
+          <button type="button" id="btnFilters" class="btn btn-sm only-mobile">Filtros <span class="badge" id="filterCount" hidden></span></button>
+          <span class="count" id="count" aria-live="off"></span>
+          <div class="strip" id="strip" aria-hidden="true" title="Recorrido del mazo: verde sabida, ocre dudosa"></div>
+        </div>
+
+        <div class="stage" id="stage">
+          <div class="sheet-wrap" id="sheetWrap">
+            <div class="sheet" id="sheet">
+              <article class="face front" id="front" aria-label="Pregunta">
+                <div class="frame">
+                  <div class="face-tools"><button type="button" class="btn btn-icon btn-quiet btn-xs" data-act="edit" aria-label="Editar tarjeta" title="Editar tarjeta (E)"></button></div>
+                  <div class="face-body" id="frontBody">
+                    <h2 class="q" id="qText"></h2>
+                    <p class="hint" id="hint"></p>
+                  </div>
+                  <div class="titleblock" id="tbFront"></div>
+                </div>
+              </article>
+              <article class="face back" id="back" aria-label="Respuesta">
+                <div class="frame">
+                  <div class="face-tools"><button type="button" class="btn btn-icon btn-quiet btn-xs" data-act="edit" aria-label="Editar tarjeta" title="Editar tarjeta (E)"></button></div>
+                  <div class="face-body" id="backBody" tabindex="-1">
+                    <p class="q-echo" id="qEcho"></p>
+                    <p class="key" id="keyText"></p>
+                    <div id="cardNotes"></div>
+                    <div class="answer" id="answer"></div>
+                  </div>
+                  <div class="titleblock" id="tbBack"></div>
+                </div>
+              </article>
+            </div>
+          </div>
+          <div class="panel" id="panel" hidden></div>
+        </div>
+
+        <div class="controls">
+          <div class="nav">
+            <button type="button" id="btnPrev" class="btn btn-icon c-prev" aria-label="Tarjeta anterior" title="Anterior (←)"></button>
+            <button type="button" id="btnFlip" class="btn btn-primary c-flip" aria-pressed="false" title="Dar vuelta (Espacio)"><span id="btnFlipLabel">Ver respuesta</span></button>
+            <button type="button" id="btnNext" class="btn btn-icon c-next" aria-label="Tarjeta siguiente" title="Siguiente (→)"></button>
+          </div>
+          <div class="marks">
+            <button type="button" id="btnKnown" class="btn btn-known c-known" aria-pressed="false" title="Ya la sé (S)"><span class="lbl-full">Ya la sé</span><span class="lbl-short">La sé</span></button>
+            <button type="button" id="btnDoubt" class="btn btn-doubt c-doubt" aria-pressed="false" title="Dudosa (D)"><span>Dudosa</span></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="view listview" id="list" aria-label="Lista de tarjetas" hidden>
+        <div class="list-head">
+          <button type="button" id="btnFilters2" class="btn btn-sm only-mobile">Filtros <span class="badge" id="filterCount2" hidden></span></button>
+          <span class="count" id="listCount"></span>
+          <div class="spacer"></div>
+          <button type="button" id="bulkKnown" class="btn btn-sm">Marcar como sabidas</button>
+          <button type="button" id="bulkClear" class="btn btn-sm">Quitar marcas</button>
+        </div>
+        <ol class="rows" id="rows"></ol>
+        <div class="panel panel-static" id="listEmpty" hidden></div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+
+<dialog id="editor" aria-labelledby="edTitle">
+  <form id="edForm" method="dialog" novalidate>
+    <div class="dlg-head">
+      <h2 id="edTitle">Nueva tarjeta</h2>
+      <button type="button" class="btn btn-icon btn-quiet" data-close aria-label="Cerrar"></button>
+    </div>
+    <div class="dlg-body">
+      <p class="dlg-note" id="edNote" hidden></p>
+      <div class="field">
+        <label for="edQ">Pregunta</label>
+        <textarea id="edQ" rows="3" required></textarea>
+      </div>
+      <div class="field">
+        <label for="edK">Idea clave <span class="opt">opcional</span></label>
+        <textarea id="edK" rows="2"></textarea>
+        <p class="help">Una o dos frases que resuman la respuesta. Aparece destacada al dar vuelta la tarjeta.</p>
+      </div>
+      <div class="field">
+        <div class="field-row">
+          <label for="edA">Respuesta</label>
+          <button type="button" class="link link-sm" id="edPreviewBtn" aria-pressed="false">Vista previa</button>
+        </div>
+        <textarea id="edA" rows="9" required></textarea>
+        <div class="answer preview" id="edPreview" hidden></div>
+        <p class="help">Podés usar <code>**negrita**</code>, viñetas empezando la línea con <code>•</code>, listas numeradas, títulos con <code>###</code>, fórmulas entre comillas invertidas y tablas con <code>|</code>.</p>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label for="edT">Tema</label>
+          <select id="edT"></select>
+        </div>
+        <div class="field" id="edNField">
+          <label for="edN">Número de pregunta <span class="opt">opcional</span></label>
+          <input id="edN" type="number" min="1" max="999" inputmode="numeric">
+        </div>
+      </div>
+      <div class="field" id="edNewTopicWrap" hidden>
+        <label for="edNewTopic">Nombre del tema nuevo</label>
+        <input id="edNewTopic" type="text" maxlength="40" autocomplete="off">
+      </div>
+      <p class="form-error" id="edErr" role="alert" hidden></p>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn btn-danger-quiet" id="edDelete" hidden>Eliminar tarjeta</button>
+      <button type="button" class="btn btn-quiet" id="edRestore" hidden>Volver al original</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" data-close>Cancelar</button>
+      <button type="submit" class="btn btn-primary" id="edSave">Guardar tarjeta</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="confirm" class="dlg-sm" aria-labelledby="cfTitle" aria-describedby="cfText">
+  <div class="dlg-body">
+    <h2 id="cfTitle"></h2>
+    <p id="cfText"></p>
+  </div>
+  <div class="dlg-foot">
+    <button type="button" class="btn" id="cfCancel">Cancelar</button>
+    <button type="button" class="btn" id="cfAlt" hidden></button>
+    <button type="button" class="btn btn-primary" id="cfOk">Aceptar</button>
+  </div>
+</dialog>
+
+<dialog id="shortcuts" class="dlg-sm" aria-labelledby="scTitle">
+  <div class="dlg-head">
+    <h2 id="scTitle">Atajos de teclado</h2>
+    <button type="button" class="btn btn-icon btn-quiet" data-close aria-label="Cerrar"></button>
+  </div>
+  <div class="dlg-body">
+    <dl class="keys">
+      <dt><kbd>Espacio</kbd></dt><dd>Dar vuelta la tarjeta</dd>
+      <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Tarjeta anterior y siguiente</dd>
+      <dt><kbd>S</kbd></dt><dd>Ya la sé (sale del mazo)</dd>
+      <dt><kbd>D</kbd></dt><dd>Marcar como dudosa</dd>
+      <dt><kbd>E</kbd></dt><dd>Editar la tarjeta</dd>
+      <dt><kbd>N</kbd></dt><dd>Nueva tarjeta</dd>
+      <dt><kbd>/</kbd></dt><dd>Buscar</dd>
+      <dt><kbd>?</kbd></dt><dd>Ver estos atajos</dd>
+    </dl>
+    <p class="note">Apretar de nuevo S o D sobre una tarjeta marcada le quita la marca.</p>
+  </div>
+</dialog>
+
+<dialog id="about" aria-labelledby="abTitle">
+  <div class="dlg-head">
+    <h2 id="abTitle">Sobre estas tarjetas</h2>
+    <button type="button" class="btn btn-icon btn-quiet" data-close aria-label="Cerrar"></button>
+  </div>
+  <div class="dlg-body prose">
+    <p>Son las <span id="aboutCount">114</span> preguntas del listado para el parcial de Desarrollo de Dispositivos Aéreos No Tripulados. Las respuestas se armaron a partir de las diapositivas de las clases 1 a 6.</p>
+    <ul>
+      <li><b>Clase 1:</b> introducción, historia, aplicaciones, normativa y ética.</li>
+      <li><b>Clase 2:</b> componentes de drones.</li>
+      <li><b>Clase 3:</b> aerodinámica y física.</li>
+      <li><b>Clase 4:</b> electricidad y electrónica.</li>
+      <li><b>Clase 5:</b> montaje del dron.</li>
+      <li><b>Clase 6:</b> configuración del sistema de potencia.</li>
+    </ul>
+    <p>Las preguntas 98 a 113 no tenían diapositivas: su respuesta es general y la tarjeta lo avisa. También se avisa cuando una respuesta suma información que no está en las clases.</p>
+    <p>Con <b>Ya la sé</b> una tarjeta sale del mazo de estudio; con <b>Dudosa</b> queda marcada para repasar. Las dos marcas se quitan tocando el mismo botón otra vez, desde la Lista o eligiendo Sabidas o Dudosas en Estado.</p>
+    <p>Tu avance, tus ediciones y tus tarjetas propias se guardan solo en este navegador. Para usarlos en otro dispositivo o compartir tarjetas con compañeros, exportá e importá desde el menú.</p>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden>
+  <span id="toastMsg"></span>
+  <button type="button" id="toastAct" class="toast-act" hidden>Deshacer</button>
+  <button type="button" id="toastClose" class="toast-x" aria-label="Cerrar aviso"></button>
+</div>
+<div class="sr-only" id="live" aria-live="polite"></div>
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+
+<script src="assets/cards.js"></script>
+<script src="assets/diagrams.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
